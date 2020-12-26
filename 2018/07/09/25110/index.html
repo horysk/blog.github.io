@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css">
+  <script src="/lib/pace/pace.min.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"blog.horysk.com","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"right","Muse | Mist":320,"display":"always","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":true,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="一、前言多因子选股策略是一种应用十分广泛的选股策略，其基本思构想就是找到某些和收益率最相关的指标，找出股票收益率与各种指标之间的“关系”，借此“关系”建立股票组合，并期望该组合可以跑赢指数。 多因子回归是多因子选股策略最常用的方法，它用过去的股票的收益率对多因子进行回归，得到一个回归方程，然后把当下的因子数值代入回归方程得到未来股票的预期收益，最后以此为依据进行选股。 机器学习和多因子选股策略的结">
+<meta property="og:type" content="article">
+<meta property="og:title" content="机器学习量化多因子选股策略">
+<meta property="og:url" content="http://blog.horysk.com/2018/07/09/25110/index.html">
+<meta property="og:site_name" content="Horysk 宏睿时空">
+<meta property="og:description" content="一、前言多因子选股策略是一种应用十分广泛的选股策略，其基本思构想就是找到某些和收益率最相关的指标，找出股票收益率与各种指标之间的“关系”，借此“关系”建立股票组合，并期望该组合可以跑赢指数。 多因子回归是多因子选股策略最常用的方法，它用过去的股票的收益率对多因子进行回归，得到一个回归方程，然后把当下的因子数值代入回归方程得到未来股票的预期收益，最后以此为依据进行选股。 机器学习和多因子选股策略的结">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2018-07-09T14:17:16.000Z">
+<meta property="article:modified_time" content="2018-07-09T14:17:16.000Z">
+<meta property="article:author" content="Hory Skone">
+<meta property="article:tag" content="quant">
+<meta property="article:tag" content="ML">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://blog.horysk.com/2018/07/09/25110/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>机器学习量化多因子选股策略 | Horysk 宏睿时空</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Horysk 宏睿时空</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/horysk" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://blog.horysk.com/2018/07/09/25110/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="Hory Skone">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Horysk 宏睿时空">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          机器学习量化多因子选股策略
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-07-09 14:17:16" itemprop="dateCreated datePublished" datetime="2018-07-09T14:17:16+00:00">2018-07-09</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/quant/" itemprop="url" rel="index"><span itemprop="name">quant</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">Views: </span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Valine: </span>
+    
+    <a title="valine" href="/2018/07/09/25110/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2018/07/09/25110/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  <br>
+            <span class="post-meta-item" title="Symbols count in article">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">Symbols count in article: </span>
+              <span>5.5k</span>
+            </span>
+            <span class="post-meta-item" title="Reading time">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">Reading time &asymp;</span>
+              <span>5 mins.</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="一、前言"><a href="#一、前言" class="headerlink" title="一、前言"></a>一、前言</h2><p>多因子选股策略是一种应用十分广泛的选股策略，其基本思构想就是找到某些和收益率最相关的指标，找出股票收益率与各种指标之间的“关系”，借此“关系”建立股票组合，并期望该组合可以跑赢指数。</p>
+<p>多因子回归是多因子选股策略最常用的方法，它用过去的股票的收益率对多因子进行回归，得到一个回归方程，然后把当下的因子数值代入回归方程得到未来股票的预期收益，最后以此为依据进行选股。</p>
+<p>机器学习和多因子选股策略的结合，从实践的角度来看，机器学习所做的工作是在现有因子的数据集上建立模型，对股票收益率进行拟合，然后对模型进行评估和优化。</p>
+<p>用机器学习做模型预测有一套基本流程：数据获取、数据预处理、模型训练、模型评估和模型预测。接下来本文沿着这套流程用python中的机器学习库sklearn完成一个简单的多因子回归的选股模型。</p>
+<h2 id="二、获取数据"><a href="#二、获取数据" class="headerlink" title="二、获取数据"></a>二、获取数据</h2><p>机器学习所需数据主要有两个来源：网络爬虫和专业数据库，这里我们使用的数据为A股股票的历史数据，因此数据来源取自wind数据库。</p>
+<p>原始数据包含了所有A股股票——以2018/06/30当日的股票为准，时间段选取1998/04/30至2018/06/30，每个月度每只股票取数十个不同的指标，以月末最后一日的数据作为截面数据保存。</p>
+<p>由于数据过于冗杂，我们先对数据进行结构化降维，使用csv格式进行存储，每个月度的截面数据保存在一个csv文件中，文件名有序排列。每个csv文件中包含了该月份最后一日所有股票的部分基本信息、下一个月的收益率、和数十个指标因子的值。</p>
+<h2 id="三、数据预处理"><a href="#三、数据预处理" class="headerlink" title="三、数据预处理"></a>三、数据预处理</h2><p>首先是特征提取，特征提取这一步主要基于人的经验，对于指导股票投资的模型，则选取作出投资决策中经常考虑的一些数据指标。这里，我们选取以下几类指标进行考量：</p>
+<p>估值指标：营业收入、净利润、净资产等</p>
+<p>成长指标：营收同比增速、净利润同比增速等</p>
+<p>财务指标：毛利率、资产周转率、经营性现金流等</p>
+<p>杠杆指标：流动比率、现金比率等</p>
+<p>流动性指标：N日日均换手率等</p>
+<p>其他绝对指标：市值、股价、股东数、beta 等</p>
+<p>情绪指标：wind评级、wind一直目标价等</p>
+<p>技术指标：MACD、RSI、动量反转……</p>
+<p>特征因子的选取对于模型的拟合结果和预测准确度有很大影响，因此特征因子要精挑细选。以上指标都是市场中各类投资者经常考虑的指标的总结，有效性有待商议，现在先从wind中提取出这些指标。</p>
+<p>接下来是数据清洗，数据清洗需要做的是缺失值填充、数据标准化、数据降维等等。</p>
+<p>由于从wind中所取得的指标有限，而且原始数据因为未上市、停牌、涨跌停等多种原因产生了很多空值、不可使用的数据，这部分因子的数值需要进行缺失值填充；部分指标属于绝对值类指标，不同公司间差异性较大，类似营业收入、净利润、现金流等因子，换做与其市值的比值后横向可比性更强；其他有些数据也因为各种原因存在着去极值、标准化和降维等需要。</p>
+<p>下表为自1998年4月起的第244个月的csv文件部分截图，文件的列结构如下：</p>
+<p>第1列：当前文件所属月份</p>
+<p>第2列：wind股票代码</p>
+<p>第3列：交易状态，1为正常交易，0为ST/停牌/次新股</p>
+<p>第4列：下一个月超额收益率（相对于沪深300）</p>
+<p>5列后：已完成数据预处理的特征因子70个</p>
+<h2 id="四、模型训练"><a href="#四、模型训练" class="headerlink" title="四、模型训练"></a>四、模型训练</h2><h3 id="1-、模块导入"><a href="#1-、模块导入" class="headerlink" title="1 、模块导入"></a>1 、模块导入</h3><p>该模型依赖的模块主要有：numpy，pandas和sklearn。</p>
+<p>其中numpy是Python做数据处理常用的扩充程序库，主要用于支持高维数组与矩阵运算，同时针对数组运算提供大量的数学函数库；而pandas是基于numpy的高效数据模型库，由于为面板数据分析和时间序列分析提供了很好的支持，因此常备用作金融数据分析的基础工具包。</p>
+<p>sklearn全称是scikit-learn，是谷歌开发的一个机器学习框架，是python重要的机器学习库。sklearn支持包括分类、回归、降维和聚类四大机器学习算法，还包含了特征提取、数据处理和模型评估三大模块。sklearn建立在NumPy和matplotlib库的基础上，利用这几大模块的优势，大大提高机器学习的效率，是机器学习领域最知名的python模块之一。</p>
+<p>sklearn支持的机器学习方式：</p>
+<p>1.Classification 监督学习-分类（预测未来变化方向）</p>
+<p>2.Regression 监督学习-回归（预测未来变化幅度）</p>
+<p>3.Clustering 非监督学习-聚类（选取相近的样本）</p>
+<p>4.Dimensionality reduction 非监督学习-降维（选取有代表性的因子）</p>
+<p>5.Model Selection 模型选择（选择更好的模型）</p>
+<p>6.Preprocessing 数据预处理（如何选择特征，做预处理）</p>
+<h3 id="2-、参数设置"><a href="#2-、参数设置" class="headerlink" title="2 、参数设置"></a>2 、参数设置</h3><p>模型中所有参数都在这一部分进行定义，其中包含样本内数据集、样本外数据集、正反数据比例、验证集比例、随机数种子点、置信度、特征因子序列等等。具体参数如下：</p>
+<p>1.month_in_sample = range(1,141+1)    # 样本内数据月份范围</p>
+<p>2.month_test = range(142,243+1)        # 样本外数据月份范围</p>
+<p>3.percent_select = [0.2,0.2]            # 正例和反例数据的比例</p>
+<p>4.percent_cv = 0.1                       # 验证集比例</p>
+<p>5.seed = 45                             # 随机数种子点</p>
+<p>6.logi_C = 0.0005                        # 置信度</p>
+<p>7.n_stock = 3625                         # 现今股票数</p>
+<p>8.n_stock_select = 10                   # 选出股票数</p>
+<p>9.parameters = (‘EP’：’bias’)   # 模型所使用的特征因子</p>
+<p>这里的参数后期都可以根据不同需要进行调整，以获得更有效的模型。</p>
+<h3 id="3-、数据处理"><a href="#3-、数据处理" class="headerlink" title="3 、数据处理"></a>3 、数据处理</h3><p>对于数据，使用经典的内外划分方式，将整体数据集244个月的A股月数据分为两部分：</p>
+<p>样本内数据，通过设定month_in_sample参数的值，选取1998年4月~2009年12月的数据，用于模型训练</p>
+<p>样本外数据，通过设定month_test参数的值，选取2010年1月~2018年6月的数据，用于模型预测</p>
+<p>对于样本内的数据，先进行数据的进一步清洗和整理，循环读取每一期的csv表：</p>
+<p>1.根据parameters参数，从csv文件中读取相关因子数据，并保存在临时表</p>
+<p>2.删除单元格有空值的股票</p>
+<p>3.加入标签项，根据次月超额收益对个股打标签</p>
+<p>4.根据percent_select的参数留下收益最高和最低的部分股票</p>
+<p>5.将收益最好的股票打标签1，收益最差的股票打标签0</p>
+<p>最终，得到的数据集data_in_sample为处理好的样本内数据集，可以用来进行模型训练，该数据集的部分截图展示如下。</p>
+<h3 id="4-、模型训练"><a href="#4-、模型训练" class="headerlink" title="4 、模型训练"></a>4 、模型训练</h3><p>模型训练前，先将样本内数据集再一次进行拆分，拆分为训练集和验证集，验证集的比例根据percent_cv参数确定，集合的拆分由train_test_split完成，因此具有随机性。</p>
+<p>根据拆分出的训练集，对模型进行训练，模型训练使用sklearn中的函数model.fit。这里可用的模型很多，包括线性回归模型、支持向量机模型、SGD模型等等。这里以线性回归模型为例，在置信度为logi_C的水平下进行线性回归，经过机器学习得到拟合后的model。</p>
+<h2 id="五、模型评估"><a href="#五、模型评估" class="headerlink" title="五、模型评估"></a>五、模型评估</h2><p>用此model对样本内数据集的训练集和验证集进行预测，sklearn中有专门的函数predict和decision_function对模型进行预测。</p>
+<p>这样可以得到预测的涨跌标签值以及涨跌的概率，通过将预测数据和真实数据进行比较，metrics中有专门的函数accuracy_score可以进行矩阵直接的比较，最终得到两矩阵的相似性，可以理解为模型预测的准确率。</p>
+<p>因此，若参数按上文中进行设置，可以得到的模型训练集的预测准确率为59%，验证集的预测准确度为58%，系统输出结果如下：</p>
+<p>training set: accuracy = 0.59</p>
+<p>cv set: accuracy = 0.58</p>
+<h2 id="六、策略构建"><a href="#六、策略构建" class="headerlink" title="六、策略构建"></a>六、策略构建</h2><p>使用该model构建多因子选股策略：对于所有A股股票，以月度为频率，取parameters中定义的特征因子进行拟合，给出预测涨跌的概率，对预测涨跌概率进行排序，选取前n_stock_select个股票构建等权组合，进行买入。</p>
+<h2 id="七、策略预测"><a href="#七、策略预测" class="headerlink" title="七、策略预测"></a>七、策略预测</h2><p>有了通过对训练集机器学习后确定的model，就可以对样本外的数据进行回测。在回测之前同样需要对样本外数据进行清洗和整理，然后按月循环带入model，给出每个月每只个股的涨跌预测以及涨跌概率的预测，并根据策略构建投资组合进行轮动。</p>
+<p>回测部分需要有以下输出内容：</p>
+<p>1.将预测涨跌概率的矩阵输出到PredResult.csv，</p>
+<p>2.将股票组合的月收益率序列记录到return_test表，该表的部分展示如下图，</p>
+<p>3.计算出投资组合在样本外预测月份的净值序列，输出到Value.csv。</p>
+<h2 id="八、策略评价"><a href="#八、策略评价" class="headerlink" title="八、策略评价"></a>八、策略评价</h2><p>根据回测中得到的组合月度超额收益率return_test表，以及组合净值Value.csv，可以计算出该策略的超额年化收益、波动率和信息比率。本策略中，按上文设定的参数给出的投资组合各项指标，输出如下：</p>
+<p>annualized excess return = 0.28</p>
+<p>annualized excess volatility = 0.19</p>
+<p>information ratio = 1.44</p>
+<p>该策略组合的平均超额年化收益率为28%，平均年化收益波动率为0.19，信息比率IR为1.44，每承担1单位波动风险获得1.44的超额收益。</p>
+<p>最后，绘制出回测时间段内，2010年1月~2018年6月，该选股策略下的投资组合净值曲线，输出如：</p>
+<h2 id="九、其他改进"><a href="#九、其他改进" class="headerlink" title="九、其他改进"></a>九、其他改进</h2><h3 id="1-、因子原因"><a href="#1-、因子原因" class="headerlink" title="1 、因子原因"></a>1 、因子原因</h3><p>特征因子的选择对于限行回归模型的有效性有着较大影响，本文的实例中将70个不同层面的特征因子一起放入了sklearn的线性模型中进行拟合，后续可以考虑有选择性的对模型进行带入，或许会有更好的拟合效果。</p>
+<p>例如，在原模型的基础上，去掉技术指标类的特征因子，只保留基本面的特征因子，模型的预测能力和回测评价输出如下：</p>
+<p>training set: accuracy = 0.57</p>
+<p>cv set: accuracy = 0.57</p>
+<p>annualized excess return = 0.25</p>
+<p>annualized excess volatility = 0.17</p>
+<p>information ratio = 1.46</p>
+<p>反之，若只使用技术指标类的特征因子，完全不考虑基本面的指标，模型的预测能力和回测评价输出如下：</p>
+<p>training set: accuracy = 0.58</p>
+<p>cv set: accuracy = 0.57</p>
+<p>annualized excess return = 0.10</p>
+<p>annualized excess volatility = 0.29</p>
+<p>information ratio = 0.33</p>
+<h3 id="2-、变量调参"><a href="#2-、变量调参" class="headerlink" title="2 、变量调参"></a>2 、变量调参</h3><p>可以根据model拟合后的预测准确率指标进行适当的参数调整，将下述输出指标进行优化。</p>
+<p>trainingset: accuracy = 0.59</p>
+<p>cv set: accuracy = 0.58</p>
+<p>例如，将percent_select参数调整为[0.3,0.3]，即选择前30%的股票作为正例，后30%的股票作为反例，对模型进行训练，模型的预测能力和回测评价输出如下：</p>
+<p>training set: accuracy = 0.57</p>
+<p>cv set: accuracy = 0.57</p>
+<p>annualized excess return = 0.27</p>
+<p>annualized excess volatility = 0.20</p>
+<p>information ratio = 1.33</p>
+<p>或者，将n_stock_select参数调整为50，即每一期使用model进行预测时选取前50只股票买入，模型的预测能力不会改变，但是回测评价输出如下：</p>
+<p>annualized excess return = 0.24</p>
+<p>annualized excess volatility = 0.18</p>
+<p>information ratio = 1.34</p>
+<p>再或者，将logi_C参数调整为0.005，即对拟合的置信度进行放宽，对模型进行训练，模型的预测能力和回测评价输出如下：</p>
+<p>training set: accuracy = 0.59</p>
+<p>cv set: accuracy = 0.57</p>
+<p>annualized excess return = 0.29</p>
+<p>annualized excess volatility = 0.21</p>
+<p>information ratio = 1.41</p>
+<h3 id="3-、模型改进"><a href="#3-、模型改进" class="headerlink" title="3 、模型改进"></a>3 、模型改进</h3><p>线性回归模型虽然简单、对特征因子选取的依赖性较强，但也是可解释性、可控性较强的模型。除此之外，我们也可以引入其他模型，sklearn中包含了很多机器学习模块可供使用：</p>
+<p>1.逻辑回归（可解释性更强，训练速度更快）：</p>
+<p>fromsklearn.linear_model import LogisticRegression</p>
+<p>2.随机森林模型：from sklearn import tree</p>
+<p>3.支持向量机模型（高维非线性拟合，训练速度慢）：</p>
+<p>fromsklearn.svm import SVC</p>
+<p>4.K近邻算法：from sklearn import neighbors</p>
+<p>5.多层神经网络（高频海量数据的机器学习，小题大做）：</p>
+<p>fromsklearn.neural_network import MLPClassifier</p>
+<p>另一方面，模型的训练和检验方式，也有多种选择，除了交叉验证外，还有滚动训练回测、检验曲线等等。都可以作为后期模型改进可以尝试的方向。</p>
+<p>来源：西藏信托</p>
+<p>拓展阅读：</p>
+<p>1.<a target="_blank" rel="noopener" href="https://blog.csdn.net/u011078141/article/details/89453203">一个量化策略师的自白（好文强烈推荐）</a></p>
+<p>2.<a target="_blank" rel="noopener" href="https://www.myquant.cn/community/topic/1587">学习Python量化有哪些书籍？这里有一份书单送给你</a></p>
+<p>3.<a target="_blank" rel="noopener" href="https://www.myquant.cn/community/topic/649/2">学了那么多技术指标为什么还不赚钱?从量化角度告诉你</a></p>
+<p>4.<a target="_blank" rel="noopener" href="https://www.myquant.cn/community/topic/679">最科学的仓位管理利器-凯利公式，从方法上胜过99%散户</a></p>
+<p>5.<a target="_blank" rel="noopener" href="https://www.myquant.cn/community/topic/548/2">网格交易法，一个不容易亏钱的投资策略（附源码）</a><br><a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_42219751/article/details/105813212">link</a></p>
+
+    </div>
+
+    
+    
+    
+
+    <div>
+      
+        
+      
+    </div>
+        <div class="reward-container">
+  <div>Thanks.</div>
+  <button onclick="var qr = document.getElementById('qr'); qr.style.display = (qr.style.display === 'none') ? 'block' : 'none';">
+    Donate
+  </button>
+  <div id="qr" style="display: none;">
+      
+      <div style="display: inline-block;">
+        <img src="/images/wechatpay.png" alt="Hory Skone WeChat Pay">
+        <p>WeChat Pay</p>
+      </div>
+
+  </div>
+</div>
+
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>Post author:  </strong>Hory Skone
+  </li>
+  <li class="post-copyright-link">
+    <strong>Post link: </strong>
+    <a href="http://blog.horysk.com/2018/07/09/25110/" title="机器学习量化多因子选股策略">http://blog.horysk.com/2018/07/09/25110/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>Copyright Notice:  </strong>All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> unless stating additionally.
+  </li>
+</ul>
+</div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/quant/" rel="tag">quant</a>
+              <a href="/tags/ML/" rel="tag">ML</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2018/06/09/40382/" rel="prev" title="16个有用的带宽监控工具，用于分析Linux中的网络使用情况">
+      <i class="fa fa-chevron-left"></i> 16个有用的带宽监控工具，用于分析Linux中的网络使用情况
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2018/08/20/33568/" rel="next" title="量化交易领域最重要的10本参考书推荐！">
+      量化交易领域最重要的10本参考书推荐！ <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E5%89%8D%E8%A8%80"><span class="nav-number">1.</span> <span class="nav-text">一、前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E8%8E%B7%E5%8F%96%E6%95%B0%E6%8D%AE"><span class="nav-number">2.</span> <span class="nav-text">二、获取数据</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E6%95%B0%E6%8D%AE%E9%A2%84%E5%A4%84%E7%90%86"><span class="nav-number">3.</span> <span class="nav-text">三、数据预处理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9B%9B%E3%80%81%E6%A8%A1%E5%9E%8B%E8%AE%AD%E7%BB%83"><span class="nav-number">4.</span> <span class="nav-text">四、模型训练</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E3%80%81%E6%A8%A1%E5%9D%97%E5%AF%BC%E5%85%A5"><span class="nav-number">4.1.</span> <span class="nav-text">1 、模块导入</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E3%80%81%E5%8F%82%E6%95%B0%E8%AE%BE%E7%BD%AE"><span class="nav-number">4.2.</span> <span class="nav-text">2 、参数设置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E3%80%81%E6%95%B0%E6%8D%AE%E5%A4%84%E7%90%86"><span class="nav-number">4.3.</span> <span class="nav-text">3 、数据处理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-%E3%80%81%E6%A8%A1%E5%9E%8B%E8%AE%AD%E7%BB%83"><span class="nav-number">4.4.</span> <span class="nav-text">4 、模型训练</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%94%E3%80%81%E6%A8%A1%E5%9E%8B%E8%AF%84%E4%BC%B0"><span class="nav-number">5.</span> <span class="nav-text">五、模型评估</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%AD%E3%80%81%E7%AD%96%E7%95%A5%E6%9E%84%E5%BB%BA"><span class="nav-number">6.</span> <span class="nav-text">六、策略构建</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%83%E3%80%81%E7%AD%96%E7%95%A5%E9%A2%84%E6%B5%8B"><span class="nav-number">7.</span> <span class="nav-text">七、策略预测</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%AB%E3%80%81%E7%AD%96%E7%95%A5%E8%AF%84%E4%BB%B7"><span class="nav-number">8.</span> <span class="nav-text">八、策略评价</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B9%9D%E3%80%81%E5%85%B6%E4%BB%96%E6%94%B9%E8%BF%9B"><span class="nav-number">9.</span> <span class="nav-text">九、其他改进</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E3%80%81%E5%9B%A0%E5%AD%90%E5%8E%9F%E5%9B%A0"><span class="nav-number">9.1.</span> <span class="nav-text">1 、因子原因</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E3%80%81%E5%8F%98%E9%87%8F%E8%B0%83%E5%8F%82"><span class="nav-number">9.2.</span> <span class="nav-text">2 、变量调参</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E3%80%81%E6%A8%A1%E5%9E%8B%E6%94%B9%E8%BF%9B"><span class="nav-number">9.3.</span> <span class="nav-text">3 、模型改进</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">Hory Skone</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">77</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">33</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">39</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/horysk" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;horysk" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:admin@horysk.com" title="E-Mail → mailto:admin@horysk.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="http://www.hory-ai.com/" title="HoryAI → http:&#x2F;&#x2F;www.hory-ai.com" rel="noopener" target="_blank"><i class="fab fa-google fa-fw"></i>HoryAI</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/sirobot" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;sirobot" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>CSDN</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.zhihu.com/people/AI_HH" title="ZhiHu → https:&#x2F;&#x2F;www.zhihu.com&#x2F;people&#x2F;AI_HH" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>ZhiHu</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.kaggle.com/" title="Kaggle → https:&#x2F;&#x2F;www.kaggle.com&#x2F;" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>Kaggle</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://tianchi.aliyun.com/competition/gameList/activeList" title="TianChi → https:&#x2F;&#x2F;tianchi.aliyun.com&#x2F;competition&#x2F;gameList&#x2F;activeList" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>TianChi</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://works.yangerxiao.com/honeyed-words-generator" title="土情话 → https:&#x2F;&#x2F;works.yangerxiao.com&#x2F;honeyed-words-generator" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>土情话</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+      
+      <script type="text/javascript" charset="utf-8" src="/js/tagcloud.js"></script>
+      <script type="text/javascript" charset="utf-8" src="/js/tagcanvas.js"></script>
+      <div class="widget-wrap">
+          <h3 class="widget-title">Tag Cloud</h3>
+          <div id="myCanvasContainer" class="widget tagcloud">
+              <canvas width="250" height="250" id="resCanvas" style="width:100%">
+                  <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/AI/" rel="tag">AI</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/BI/" rel="tag">BI</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/CET/" rel="tag">CET</a><span class="tag-list-count">9</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Centos/" rel="tag">Centos</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/DNS/" rel="tag">DNS</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Dapp/" rel="tag">Dapp</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Docker/" rel="tag">Docker</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Hack/" rel="tag">Hack</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Hexo/" rel="tag">Hexo</a><span class="tag-list-count">5</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/HyperLedger-Fabric/" rel="tag">HyperLedger Fabric</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Hyperledger-Fabric/" rel="tag">Hyperledger Fabric</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Iftop/" rel="tag">Iftop</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Investment/" rel="tag">Investment</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Linux/" rel="tag">Linux</a><span class="tag-list-count">11</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ML/" rel="tag">ML</a><span class="tag-list-count">5</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/MTProxy/" rel="tag">MTProxy</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Mongo/" rel="tag">Mongo</a><span class="tag-list-count">4</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Network/" rel="tag">Network</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/PMP/" rel="tag">PMP</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Pyppeteer/" rel="tag">Pyppeteer</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Tools/" rel="tag">Tools</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/VPN/" rel="tag">VPN</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Vnc/" rel="tag">Vnc</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/baostock/" rel="tag">baostock</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/block-chain/" rel="tag">block chain</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/centos-xfce-vnc/" rel="tag">centos-xfce-vnc</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/docker/" rel="tag">docker</a><span class="tag-list-count">11</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/fabric/" rel="tag">fabric</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/hexo/" rel="tag">hexo</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/horysk/" rel="tag">horysk</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/k8s/" rel="tag">k8s</a><span class="tag-list-count">5</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/linux/" rel="tag">linux</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/mongo/" rel="tag">mongo</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/pyppeteer/" rel="tag">pyppeteer</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/python/" rel="tag">python</a><span class="tag-list-count">4</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/quant/" rel="tag">quant</a><span class="tag-list-count">7</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/stock/" rel="tag">stock</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/tushare/" rel="tag">tushare</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ubuntu/" rel="tag">ubuntu</a><span class="tag-list-count">1</span></li></ul>
+              </canvas>
+          </div>
+      </div>
+      
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+  <div class="beian"><a href="http://www.beian.miit.gov.cn/" rel="noopener" target="_blank">null </a>
+  </div>
+
+<div class="copyright">
+  
+  &copy; 2015 – 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Hory Skone</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="Symbols count total">613k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="Reading time total">9:17</span>
+</div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="Total Visitors">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="Total Views">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  
+  <script color='255,255,255' opacity='0.6' zIndex='-1' count='99' src="/lib/canvas-nest/canvas-nest.min.js"></script>
+  <script size="300" alpha="0.6" zIndex="-1" src="/lib/canvas-ribbon/canvas-ribbon.js"></script>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+<script src="/js/bookmark.js"></script>
+
+
+  <script defer src="/lib/three/three.min.js"></script>
+    <script defer src="/lib/three/three-waves.min.js"></script>
+    <script defer src="/lib/three/canvas_lines.min.js"></script>
+    <script defer src="/lib/three/canvas_sphere.min.js"></script>
+
+
+  
+  <script>
+    (function(){
+      var canonicalURL, curProtocol;
+      //Get the <link> tag
+      var x=document.getElementsByTagName("link");
+		//Find the last canonical URL
+		if(x.length > 0){
+			for (i=0;i<x.length;i++){
+				if(x[i].rel.toLowerCase() == 'canonical' && x[i].href){
+					canonicalURL=x[i].href;
+				}
+			}
+		}
+    //Get protocol
+	    if (!canonicalURL){
+	    	curProtocol = window.location.protocol.split(':')[0];
+	    }
+	    else{
+	    	curProtocol = canonicalURL.split(':')[0];
+	    }
+      //Get current URL if the canonical URL does not exist
+	    if (!canonicalURL) canonicalURL = window.location.href;
+	    //Assign script content. Replace current URL with the canonical URL
+      !function(){var e=/([http|https]:\/\/[a-zA-Z0-9\_\.]+\.baidu\.com)/gi,r=canonicalURL,t=document.referrer;if(!e.test(r)){var n=(String(curProtocol).toLowerCase() === 'https')?"https://sp0.baidu.com/9_Q4simg2RQJ8t7jm9iCKT-xh_/s.gif":"//api.share.baidu.com/s.gif";t?(n+="?r="+encodeURIComponent(document.referrer),r&&(n+="&l="+r)):r&&(n+="?l="+r);var i=new Image;i.src=n}}(window);})();
+  </script>
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('https://cdn.jsdelivr.net/npm/valine@1.3.9/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el         : '#valine-comments',
+      verify     : false,
+      notify     : false,
+      appId      : '2ASH47v4VIRijd91HeEi3pws-gzGzoHsz',
+      appKey     : 'ojRfR89cSV614pgJFT36lFFB',
+      placeholder: "昵称填写qq可以显示qq头像和昵称哦~",
+      avatar     : 'monsterid',
+      meta       : guest,
+      pageSize   : '10' || 10,
+      visitor    : false,
+      lang       : '' || 'zh-cn',
+      path       : location.pathname,
+      recordIP   : true,
+      serverURLs : '',
+      requiredFields: ['nick','mail'] 
+    });
+  }, window.Valine);
+});
+</script>
+
+  <script src="/lib/live2d-widget/autoload.js"></script>
+  <!-- 页面点击特效 -->
+  <script type="text/javascript" src="/js/jquery-3.3.1.min.js"></script>
+  <script type="text/javascript" src="/js/click-word.js"></script>
+  
+  <script type="text/javascript"
+  color="255,255,255" opacity='0.7' zIndex="-2" count="500" src="//cdn.bootcss.com/canvas-nest.js/1.0.0/canvas-nest.min.js"></script>
+  
+<script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginRootPath":"live2dw/","pluginJsPath":"lib/","pluginModelPath":"assets/","tagMode":false,"log":false,"model":{"jsonPath":"/live2dw/assets/z16.model.json"},"display":{"position":"right","width":300,"height":600},"mobile":{"show":true}});</script></body>
+</html>
